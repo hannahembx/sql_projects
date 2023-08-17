@@ -1,0 +1,427 @@
+/* Combined for a Subquery
+Need to know the region each customer is from who has had an order with freight over 100.
+Using Chinook Database
+*/
+
+SELECT
+    CustomerID,
+    CompanyName,
+    Region
+FROM Customers
+WHERE CustomerID in (SELECT customerID
+                    FROM Orders
+                    WHERE Freight > 100);
+                    
+/* Subquery in Subquery; 
+1.Order numbers for toothbrushes
+2. Customer ID's for those orders
+3. Customer information for those orders */
+
+SELECT Customer_name
+	,Customer_contact
+FROM Customers
+WHERE cust_id IN
+
+SELECT customer_id
+FROM Orders
+WHERE order_number IN (
+		SELECT order_number
+		FROM OrderItems
+		WHERE prod_name = 'Toothbrush'
+		);
+
+/* Subqueries for Calculations: Total number of orders placed by every customer */
+
+SELECT COUNT(*) AS orders
+FROM Orders
+WHERE customer_id = '143569';
+
+SELECT customer_name
+	,customer_state(SELECT COUNT(*) AS orders FROM Orders WHERE orders.customer_id = customer.customer_id) AS orders
+FROM customers
+ORDER BY Customer_name
+
+/*Cartesian JOIN*/
+SELECT
+    product_name,
+    unit_price,
+    company_name
+FROM suppliers CROSS JOIN products;
+
+
+/*Inner Join with Multiple Tables */
+
+SELECT o.OrderID, c.Company Name, e.LastName
+FROM ((Orders o INNER JOIN Customers c ON o.CustomerID = c.CustomerID))
+INNER JOIN Employees e ON o.EmployeeID = e.EmployeeID);
+
+/* Using Alias --
+The result of this query is a table that contains all of the rows from both "Vendors" and 
+"Products" tables where there is a matching "vendor_id" value, and only the columns specified in the SELECT statement. */
+
+SELECT vendor_name
+    ,product_name
+    ,product_price
+FROM Vendors AS v, Products AS p
+WHERE v.vendor_id = p.vendor_id;
+
+/*Self-Join --
+This code is trying to find all the customers in the "Customers" table who live in the same city and have the same customer ID.
+
+To do this, the code is joining the "Customers" table with itself and comparing each customer to every other customer. 
+If two customers have the same customer ID and live in the same city, then their information will show up in the result.
+
+The result will show the customer name of both customers, and their city. The information will be organized by city, 
+so all the customers who live in the same city will be grouped together.
+*/
+
+
+SELECT A.CustomerName AS CustomerName1
+	,B.CustomerName AS CustomerName2
+	,A.City
+    
+FROM Customers A
+	,Customers B
+    
+WHERE A.CustomerID = B.CustomerID
+	AND A.City = B.City
+    
+ORDER BY A.City;
+
+/* Left Join */
+
+SELECT C.CustomerName
+	,O.OrderID
+FROM Customers C
+LEFT JOIN Orders O ON C.CustomerID = O.CustomerID
+ORDER BY C.CustomerName;
+
+/*UNION */
+
+SELECT City
+	,Country
+FROM Customers
+WHERE Country = 'Germany'
+
+UNION
+
+SELECT City
+	,Country
+FROM Suppliers
+WHERE Country = 'Germany'
+ORDER BY City;
+
+/* Q1: How many albums does the artist Led Zeppelin have? */
+
+SELECT count(*)
+FROM (
+	SELECT *
+	FROM artists
+	LEFT JOIN albums ON artists.ArtistId = albums.ArtistId
+	)
+WHERE Name = "Led Zeppelin"
+
+/*+----------+
+| count(*) |
++----------+
+|       14 |
++----------+*/
+
+/* Q2: How many records are returned? */
+
+SELECT a.UnitPrice
+	,b.Title
+	,b.Name
+FROM (
+	SELECT tracks.AlbumId
+		,invoice_items.UnitPrice
+	FROM tracks
+	LEFT JOIN invoice_items ON tracks.TrackId = invoice_items.TrackId
+	) AS a
+LEFT JOIN (
+	SELECT artists.Name
+		,albums.Title
+		,albums.AlbumId
+	FROM artists
+	LEFT JOIN albums ON artists.ArtistId = albums.ArtistId
+	) AS b ON a.AlbumId = b.AlbumId
+WHERE b.Name = "Audioslave"; explain step-by-step
+
+/*+-------------+--------------+------------+
+| a.UnitPrice | b.Title      | b.Name     |
++-------------+--------------+------------+
+|        0.99 | Audioslave   | Audioslave |
+|        None | Audioslave   | Audioslave |
+|        None | Audioslave   | Audioslave |
+|        None | Audioslave   | Audioslave |
+|        0.99 | Audioslave   | Audioslave |
+|        0.99 | Audioslave   | Audioslave |
+|        None | Audioslave   | Audioslave |
+|        None | Audioslave   | Audioslave |
+|        0.99 | Audioslave   | Audioslave |
+|        0.99 | Audioslave   | Audioslave |
+|        None | Audioslave   | Audioslave |
+|        None | Audioslave   | Audioslave |
+|        None | Audioslave   | Audioslave |
+|        0.99 | Audioslave   | Audioslave |
+|        0.99 | Out Of Exile | Audioslave |
+|        None | Out Of Exile | Audioslave |
+|        None | Out Of Exile | Audioslave |
+|        0.99 | Out Of Exile | Audioslave |
+|        0.99 | Out Of Exile | Audioslave |
+|        None | Out Of Exile | Audioslave |
+|        None | Out Of Exile | Audioslave |
+|        None | Out Of Exile | Audioslave |
+|        0.99 | Out Of Exile | Audioslave |
+|        0.99 | Out Of Exile | Audioslave |
+|        None | Out Of Exile | Audioslave |
++-------------+--------------+------------+
+(Output limit exceeded, 25 of 40 total rows shown)
+*/
+/*The query starts by selecting the UnitPrice, Title, and Name columns from the result of two subqueries.
+The first subquery retrieves the AlbumId and UnitPrice columns from the tracks and invoice_items tables. The LEFT JOIN clause is used to combine the data from these two tables on the TrackId column.
+The second subquery retrieves the Name, Title, and AlbumId columns from the artists and albums tables. The LEFT JOIN clause is used to combine the data from these two tables on the ArtistId column.
+The final LEFT JOIN clause is used to combine the results of these two subqueries on the AlbumId column.
+The final result is filtered to only show data where the Name column from the second subquery is equal to "Audioslave".
+The final result is ordered by the City column.*/
+
+/* Q3: Find the total price for each album. What is the total price for the album “Big Ones”? */
+SELECT sum(b.UnitPrice) AS TotalPrice
+	,b.Title AS Title
+FROM (
+	SELECT a.UnitPrice AS UnitPrice
+		,albums.Title AS Title
+	FROM (
+		SELECT tracks.AlbumId
+			,invoice_items.UnitPrice
+		FROM tracks
+		LEFT JOIN invoice_items ON tracks.TrackId = invoice_items.TrackId
+		) AS a
+	LEFT JOIN albums ON a.AlbumId = albums.AlbumId
+	WHERE albums.Title = "Big Ones"
+	) AS b
+/*
++------------+----------+
+| TotalPrice | Title    |
++------------+----------+
+|        9.9 | Big Ones |
++------------+----------+
+
+This code retrieves the total price of a specific album and the title of the album.
+
+The first inner SELECT statement (SELECT a.UnitPrice, albums.Title) retrieves the unit price of each track in the album "Big Ones" and the title of the album.
+This inner SELECT statement joins two tables, "tracks" and "invoice_items", on the "TrackId" column.
+The results of the first inner SELECT statement are then joined with the "albums" table on the "AlbumId" column.
+The second inner SELECT statement (SELECT sum(b.UnitPrice), b.Title) calculates the sum of the unit prices of all tracks in the album "Big Ones".
+The second inner SELECT statement also retrieves the title of the album "Big Ones".
+The final results are the total price of the album "Big Ones" and the title of the album "Big Ones". */
+
+/*Q4: How many records are created when you apply a Cartesian join to the invoice and invoice items table? */
+SELECT invoices.InvoiceId
+FROM invoices
+CROSS JOIN invoice_items
+
+/*
++-----------+
+| InvoiceId |
++-----------+
+|         1 |
+|         1 |
+|         1 |
+|         1 |
+|         1 |
+|         1 |
+|         1 |
+|         1 |
+|         1 |
+|         1 |
+|         1 |
+|         1 |
+|         1 |
+|         1 |
+|         1 |
+|         1 |
+|         1 |
+|         1 |
+|         1 |
+|         1 |
+|         1 |
+|         1 |
+|         1 |
+|         1 |
+|         1 |
++-----------+
+(Output limit exceeded, 25 of 922880 total rows shown)
+
+A Cartesian join combines every row of one table with every row of another table, resulting in a large number of records. The number of records created by a Cartesian join is equal to the product of the number of rows in each table. So, if the invoices table has N rows and the invoice_items table has M rows, the result of the Cartesian join will have N * M rows.
+
+The code above performs a Cartesian join between the invoices and invoice_items tables and returns a result set that includes the InvoiceId column from the invoices table.
+
+*/
+
+/*CODING ASSIGNMENT
+
+SOURCE: https://ucde-rey.s3.amazonaws.com/DSV1015/ChinookDatabaseSchema.png
+*/
+
+/* Q1: Using a subquery, find the names of all the tracks for the album "Californication".What is the title of the 8th track?
+*/
+
+SELECT t.Name
+FROM Tracks t
+WHERE t.AlbumId = (
+		SELECT a.AlbumId
+		FROM Albums a
+		WHERE a.Title = 'Californication'
+		)
+/*
++-------------------+
+| Name              |
++-------------------+
+| Around The World  |
+| Parallel Universe |
+| Scar Tissue       |
+| Otherside         |
+| Get On Top        |
+| Californication   |
+| Easily            |
+| Porcelain         |
+| Emit Remmus       |
+| I Like Dirt       |
++-------------------+*/
+
+-----------------------------------------------------------------------
+/* Q2: Find the total number of invoices for each customer along with the customer's full name, city and email. After running the query described above, what is the email address of the 5th person, František Wichterlová? Enter the answer below. */
+
+SELECT c.CustomerId
+	,c.FirstName
+	,c.LastName
+	,c.City
+	,c.Email
+	,COUNT(i.InvoiceId)
+FROM Customers c
+JOIN Invoices i ON c.CustomerId = i.CustomerId
+GROUP BY c.CustomerId;
+
+/*
+-----------+-----------+-------------+---------------------+--------------------------+--------------------+
+| CustomerId | FirstName | LastName    | City                | Email                    | COUNT(i.InvoiceId) |
++------------+-----------+-------------+---------------------+--------------------------+--------------------+
+|          1 | Luís      | Gonçalves   | São José dos Campos | luisg@embraer.com.br     |                  7 |
+|          2 | Leonie    | Köhler      | Stuttgart           | leonekohler@surfeu.de    |                  7 |
+|          3 | François  | Tremblay    | Montréal            | ftremblay@gmail.com      |                  7 |
+|          4 | Bjørn     | Hansen      | Oslo                | bjorn.hansen@yahoo.no    |                  7 |
+|          5 | František | Wichterlová | Prague              | frantisekw@jetbrains.com |                  7 |
+|          6 | Helena    | Holý        | Prague              | hholy@gmail.com          |                  7 |
+|          7 | Astrid    | Gruber      | Vienne              | astrid.gruber@apple.at   |                  7 |
+|          8 | Daan      | Peeters     | Brussels            | daan_peeters@apple.be    |                  7 |
+|          9 | Kara      | Nielsen     | Copenhagen          | kara.nielsen@jubii.dk    |                  7 |
+|         10 | Eduardo   | Martins     | São Paulo           | eduardo@woodstock.com.br |                  7 |
++------------+-----------+-------------+---------------------+--------------------------+--------------------+
+(Output limit exceeded, 10 of 59 total rows shown)
+*/
+
+-----------------------------------------------------------------------
+/* Q3: Retrieve the track name, album, artistID, and trackID for all the albums.What is the song title of trackID 12 from the "For Those About to Rock We Salute You" album?  No output*/
+
+SELECT t.Name
+	,a.Title
+	,ar.Name
+	,t.TrackId
+FROM Artists ar
+INNER JOIN Albums a ON ar.ArtistId = a.ArtistId
+INNER JOIN Tracks t ON a.AlbumId = t.AlbumId;
+
+-----------------------------------------------------------------------
+
+/* Q4: Retrieve a list with the managers last name, and the last name of the employees who report to him or her.After running the query described above, who are the reports for the manager named Mitchell (select all that apply)? */
+
+SELECT
+mgr.LastName AS Manager
+,e.LastName AS Employee
+FROM Employees e
+LEFT JOIN Employees mgr ON e.ReportsTo = mgr.EmployeeId
+WHERE mgr.LastName = 'Mitchell';
+
+/*+----------+----------+
+| Manager  | Employee |
++----------+----------+
+| Mitchell | King     |
+| Mitchell | Callahan |
++----------+----------+*/
+
+-----------------------------------------------------------------------
+/*Q5: Find the name and ID of the artists who do not have albums. After running the query described above, two of the records returned have the same last name. Enter that name below. */
+
+SELECT a.Title
+	,ar.Name
+	,ar.ArtistId
+FROM Artists ar
+LEFT JOIN Albums a ON ar.ArtistId = a.ArtistId
+WHERE a.Title IS NULL;
+
+/* -------+----------------------------+----------+
+| Title | Name                       | ArtistId |
++-------+----------------------------+----------+
+|  None | Milton Nascimento & Bebeto |       25 |
+|  None | Azymuth                    |       26 |
+|  None | João Gilberto              |       28 |
+|  None | Bebel Gilberto             |       29 |
+|  None | Jorge Vercilo              |       30 |
+|  None | Baby Consuelo              |       31 |
+|  None | Ney Matogrosso             |       32 |
+|  None | Luiz Melodia               |       33 |
+|  None | Nando Reis                 |       34 |
+|  None | Pedro Luís & A Parede      |       35 |
++-------+----------------------------+----------+*/
+
+-----------------------------------------------------------------------
+/*Q6: Use a UNION to create a list of all the employee's and customer's first names and last names ordered by the last name in descending order. */
+
+SELECT 
+    e.FirstName
+    ,e.LastName
+FROM Employees e
+
+UNION
+
+SELECT 
+    c.FirstName
+    ,c.LastName
+FROM Customers c
+ORDER BY LastName desc;
+
+/*+-------------+--------------+
+| e.FirstName | e.LastName   |
++-------------+--------------+
+| Fynn        | Zimmermann   |
+| Stanisław   | Wójcik       |
+| František   | Wichterlová  |
+| Johannes    | Van der Berg |
+| François    | Tremblay     |
+| Mark        | Taylor       |
+| Ellie       | Sullivan     |
+| Victor      | Stevens      |
+| Puja        | Srivastava   |
+| Jack        | Smith        |
++-------------+--------------+
+(Output limit exceeded, 10 of 67 total rows shown) */
+
+-----------------------------------------------------------------------
+/*Q7: See if there are any customers who have a different city listed in their billing city versus their customer city. Indicate your answer below.*/
+
+SELECT c.FirstName,
+       c.LastName,
+       c.City AS CustomerCity,
+       i.BillingCity
+FROM Customers C
+INNER JOIN Invoices I
+ON c.CustomerId = i.CustomerId
+WHERE CustomerCity != BillingCity
+
+/*+-----------+----------+--------------+-------------+
+| FirstName | LastName | CustomerCity | BillingCity |
++-----------+----------+--------------+-------------+
++-----------+----------+--------------+-------------+
+(Zero rows)
+*/
