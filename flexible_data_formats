@@ -65,7 +65,8 @@ FROM dsv1069.events
 
 This line specifies the table to be queried. In this case, the "events" table in the "dsv1069" database.
 
-WHERE event_name = 'view_item': This line filters the results based on the value in the "event_name" column. Only rows where the "event_name" column equals "view_item" will be returned.
+WHERE event_name = 'view_item': This line filters the results based on the value in the "event_name" column.
+Only rows where the "event_name" column equals "view_item" will be returned.
 
 ORDER BY event_id: This line orders the output by the "event_id" column in ascending order. */
 
