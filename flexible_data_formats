@@ -1,0 +1,106 @@
+/* Goal 1: Write a query to format the view_item event into a table with the appropriate columns
+Starter Code:
+
+SELECT *
+FROM dsv1069.events
+WHERE event_name = 'view_item'; */
+
+SELECT event_id
+	,event_time
+	,user_id
+	,platform
+	,(
+		CASE 
+			WHEN parameter_name = 'item_id'
+				THEN CAST(parameter_value AS INT)
+			ELSE NULL
+			END
+		) AS item_id
+FROM dsv1069.events
+WHERE event_name = 'view_item'
+ORDER BY event_id;
+
+/* Goal 2: Write a query to format the view_item event into a table with the appropriate columns.
+(This replicates what we had in the slides, but it is missing a column) */
+
+SELECT event_id
+	,event_time
+	,user_id
+	,platform
+	,(
+		CASE 
+			WHEN parameter_name = 'item_id'
+				THEN CAST(parameter_value AS INT)
+			ELSE NULL
+			END
+		) AS item_id
+    ,(
+		CASE 
+			WHEN parameter_name = 'referrer'
+				THEN parameter_value
+			ELSE NULL
+			END
+		) AS referrer
+FROM dsv1069.events
+WHERE event_name = 'view_item'
+ORDER BY event_id;
+
+/* Explainer 
+This SQL code selects specific columns from the "events" table in the "dsv1069" database, 
+filters the results based on the "event_name" column, and orders the output by the "event_id" column.
+
+Here is a breakdown of the code:
+
+SELECT event_id, event_time, user_id, platform,
+(CASE WHEN parameter_name = 'item_id' THEN CAST(parameter_value AS INT) ELSE NULL END)
+AS item_id, (CASE WHEN parameter_name = 'referrer' THEN parameter_value ELSE NULL END) AS referrer
+
+This line specifies the columns to be selected from the "events" table.
+These columns are "event_id", "event_time", "user_id", "platform", "item_id", and "referrer". 
+The "item_id" and "referrer" columns are created using a CASE statement that checks the "parameter_name" 
+column to see if it equals "item_id" or "referrer", respectively. If it does, the value of the "parameter_value"
+column is assigned to "item_id" or "referrer", respectively. If it does not, NULL is assigned.
+
+FROM dsv1069.events
+
+This line specifies the table to be queried. In this case, the "events" table in the "dsv1069" database.
+
+WHERE event_name = 'view_item': This line filters the results based on the value in the "event_name" column. Only rows where the "event_name" column equals "view_item" will be returned.
+
+ORDER BY event_id: This line orders the output by the "event_id" column in ascending order. */
+
+/*Exercise 3:
+Goal: Use the result from the previous exercise, but make sure
+Starter Code: (Ex#2) */
+
+SELECT event_id
+	,event_time
+	,user_id
+	,platform
+	,MAX(
+		CASE 
+			WHEN parameter_name = 'item_id'
+				THEN CAST(parameter_value AS INT)
+			ELSE NULL
+			END
+		) AS item_id
+    ,MAX(
+		CASE 
+			WHEN parameter_name = 'referrer'
+				THEN parameter_value
+			ELSE NULL
+			END
+		) AS referrer
+FROM dsv1069.events
+WHERE event_name = 'view_item'
+GROUP BY event_id
+	,event_time
+	,user_id
+	,platform
+ORDER BY event_id;
+
+/*When I added the "MAX" function to the SQL code, it grouped the results based on some columns, and for each group,
+it looked at the values in the "item_id" and "referrer" columns. If there were any missing or "NULL" values, 
+it ignored them and picked the highest non-missing value from the rest of the values in that group. 
+This made it so that the "NULL" values were not included in the final result. It's like picking the best toy from a toy chest,
+but only if it's not broken or missing any pieces.*/
